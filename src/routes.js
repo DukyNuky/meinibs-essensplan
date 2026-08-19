@@ -58,8 +58,8 @@ router.get('/meals', (req, res) => {
 router.put('/meals/:date/rating', (req, res) => {
   const { date } = req.params;
   const { rating, comment } = req.body || {};
-  if (!['good', 'bad'].includes(rating)) {
-    return res.status(400).json({ ok: false, message: "rating muss 'good' oder 'bad' sein." });
+  if (!['good', 'neutral', 'bad'].includes(rating)) {
+    return res.status(400).json({ ok: false, message: "rating muss 'good', 'neutral' oder 'bad' sein." });
   }
   db.upsertRating(date, rating, comment);
   res.json({ ok: true });

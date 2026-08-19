@@ -6,6 +6,7 @@
   --muted: #7a7a7a;
   --border: #ece3d3;
   --good: #2e9e5b;
+  --neutral: #d9a441;
   --bad: #e0555a;
   --accent: #ff8a3d;
   --accent-2: #4aa8ff;
@@ -298,6 +299,7 @@ main {
 .thumb:active { transform: scale(0.88); }
 .thumb.active { opacity: 1; transform: scale(1.08); }
 .thumb-good.active { border-color: var(--good); background: color-mix(in srgb, var(--good) 18%, var(--card)); }
+.thumb-neutral.active { border-color: var(--neutral); background: color-mix(in srgb, var(--neutral) 18%, var(--card)); }
 .thumb-bad.active { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 18%, var(--card)); }
 
 .comment {

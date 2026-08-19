@@ -30,7 +30,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS ratings (
     date TEXT PRIMARY KEY,
-    rating TEXT NOT NULL CHECK(rating IN ('good','bad')),
+    rating TEXT NOT NULL CHECK(rating IN ('good','neutral','bad')),
     comment TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -65,6 +65,24 @@ if (!mealDaysColumns.includes('alternatives_json')) {
 }
 if (!mealDaysColumns.includes('can_change_order')) {
   db.exec(`ALTER TABLE meal_days ADD COLUMN can_change_order INTEGER NOT NULL DEFAULT 0`);
+}
+
+// Migration: 'neutral' kam nachträglich zum rating-CHECK dazu - SQLite kann
+// CHECK-Constraints nicht per ALTER ändern, also Tabelle bei Bedarf neu bauen.
+const ratingsTableSql = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='ratings'`).get();
+if (ratingsTableSql && !ratingsTableSql.sql.includes("'neutral'")) {
+  db.exec(`
+    CREATE TABLE ratings_new (
+      date TEXT PRIMARY KEY,
+      rating TEXT NOT NULL CHECK(rating IN ('good','neutral','bad')),
+      comment TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    INSERT INTO ratings_new SELECT date, rating, comment, created_at, updated_at FROM ratings;
+    DROP TABLE ratings;
+    ALTER TABLE ratings_new RENAME TO ratings;
+  `);
 }
 
 const upsertMealDay = db.prepare(`
@@ -201,6 +219,7 @@ function getStats(todayISO) {
     .prepare(`SELECT rating, COUNT(*) AS c FROM ratings WHERE date <= ? GROUP BY rating`)
     .all(todayISO);
   const good = ratingRows.find((r) => r.rating === 'good')?.c || 0;
+  const neutral = ratingRows.find((r) => r.rating === 'neutral')?.c || 0;
   const bad = ratingRows.find((r) => r.rating === 'bad')?.c || 0;
 
   const dishStats = db
@@ -210,6 +229,7 @@ function getStats(todayISO) {
          MAX(o.dish_name) AS name,
          COUNT(DISTINCT o.date) AS occurrences,
          SUM(CASE WHEN r.rating = 'good' THEN 1 ELSE 0 END) AS good,
+         SUM(CASE WHEN r.rating = 'neutral' THEN 1 ELSE 0 END) AS neutral,
          SUM(CASE WHEN r.rating = 'bad' THEN 1 ELSE 0 END) AS bad
        FROM dish_occurrences o
        LEFT JOIN ratings r ON r.date = o.date
@@ -221,6 +241,8 @@ function getStats(todayISO) {
     .all(todayISO);
 
   const mostRepeated = dishStats.slice(0, 5);
+  // Für "Liebstes/Unbeliebtestes Essen" zählt nur die good/bad-Tendenz - neutral
+  // bewertete Tage fließen bewusst nicht in dieses Ranking ein.
   const ratedEnough = dishStats.filter((d) => d.good + d.bad >= 2);
   const ratio = (d) => d.good / (d.good + d.bad);
   const mostLoved = [...ratedEnough].sort((a, b) => ratio(b) - ratio(a)).slice(0, 3);
@@ -229,8 +251,9 @@ function getStats(todayISO) {
   return {
     totalDays,
     good,
+    neutral,
     bad,
-    unrated: Math.max(0, totalDays - good - bad),
+    unrated: Math.max(0, totalDays - good - neutral - bad),
     mostRepeated,
     mostLoved,
     mostDisliked,

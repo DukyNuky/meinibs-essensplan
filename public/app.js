@@ -131,7 +131,7 @@ function renderDayCard(weekday, iso, meal, isToday) {
     if (!last) continue;
     const badge = document.createElement('div');
     badge.className = 'repeat-badge';
-    const ratingIcon = last.rating === 'good' ? '👍' : last.rating === 'bad' ? '👎' : '';
+    const ratingIcon = { good: '👍', neutral: '😐', bad: '👎' }[last.rating] || '';
     const commentText = last.comment ? ` „${last.comment}"` : '';
     badge.textContent = `🔁 gab's schon am ${formatShort(new Date(last.date + 'T00:00:00'))} ${ratingIcon}${commentText}`;
     badgeContainer.appendChild(badge);
@@ -163,12 +163,13 @@ function renderDayCard(weekday, iso, meal, isToday) {
   }
 
   const goodBtn = node.querySelector('.thumb-good');
+  const neutralBtn = node.querySelector('.thumb-neutral');
   const badBtn = node.querySelector('.thumb-bad');
   const commentInput = node.querySelector('.comment');
   const saveBtn = node.querySelector('.save-comment');
 
   if (!hasMeal || isFuture) {
-    goodBtn.style.display = badBtn.style.display = commentInput.style.display = saveBtn.style.display = 'none';
+    goodBtn.style.display = neutralBtn.style.display = badBtn.style.display = commentInput.style.display = saveBtn.style.display = 'none';
     if (hasMeal && isFuture) {
       const note = document.createElement('div');
       note.className = 'muted future-note';
@@ -178,8 +179,11 @@ function renderDayCard(weekday, iso, meal, isToday) {
     return card;
   }
 
-  if (meal.rating === 'good') goodBtn.classList.add('active');
-  if (meal.rating === 'bad') badBtn.classList.add('active');
+  const thumbBtns = [goodBtn, neutralBtn, badBtn];
+  if (meal.rating) {
+    const activeBtn = { good: goodBtn, neutral: neutralBtn, bad: badBtn }[meal.rating];
+    activeBtn?.classList.add('active');
+  }
   commentInput.value = meal.comment || '';
 
   async function saveRating(rating) {
@@ -188,19 +192,17 @@ function renderDayCard(weekday, iso, meal, isToday) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rating, comment: commentInput.value }),
     });
-    goodBtn.classList.toggle('active', rating === 'good');
-    badBtn.classList.toggle('active', rating === 'bad');
+    thumbBtns.forEach((btn) => btn.classList.toggle('active', btn.dataset.rating === rating));
   }
 
-  goodBtn.addEventListener('click', () => saveRating('good'));
-  badBtn.addEventListener('click', () => saveRating('bad'));
+  thumbBtns.forEach((btn) => btn.addEventListener('click', () => saveRating(btn.dataset.rating)));
   saveBtn.addEventListener('click', () => {
-    const rating = goodBtn.classList.contains('active') ? 'good' : badBtn.classList.contains('active') ? 'bad' : null;
-    if (!rating) {
-      alert('Bitte zuerst 👍 oder 👎 auswählen.');
+    const activeBtn = thumbBtns.find((btn) => btn.classList.contains('active'));
+    if (!activeBtn) {
+      alert('Bitte zuerst 👍, 😐 oder 👎 auswählen.');
       return;
     }
-    saveRating(rating);
+    saveRating(activeBtn.dataset.rating);
   });
 
   return card;
@@ -253,6 +255,7 @@ async function loadStats() {
   document.getElementById('statsSummary').innerHTML = `
     <div class="stat-pill"><span class="num">${s.totalDays}</span><span class="lbl">Essen erfasst</span></div>
     <div class="stat-pill"><span class="num">👍 ${s.good}</span><span class="lbl">gut fanden</span></div>
+    <div class="stat-pill"><span class="num">😐 ${s.neutral}</span><span class="lbl">mittel fanden</span></div>
     <div class="stat-pill"><span class="num">👎 ${s.bad}</span><span class="lbl">nicht so gut</span></div>
     <div class="stat-pill"><span class="num">${s.unrated}</span><span class="lbl">unbewertet</span></div>
   `;
