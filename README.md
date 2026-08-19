@@ -36,6 +36,19 @@ Funktioniert grundsätzlich, aber:
    überschreibt den Standard aus `SYNC_CRON` in `.env` (alle 4 Stunden) dauerhaft
    in der DB, ganz ohne Neustart.
 
+### Deploy über Portainer (Stack aus Git-Repository)
+
+Portainer klont beim Git-basierten Stack nur den Repo-Inhalt - `.env` liegt dort
+bewusst nicht (siehe `.gitignore`), daher scheitert `env_file: .env` mit "not
+found". `docker-compose.yml` nutzt deshalb `environment:`-Referenzen auf
+`${VARIABLE}`, die Portainer selbst auflöst:
+
+1. In Portainer: **Stacks → Add stack → Repository**, dieses Repo als URL eintragen.
+2. Im Abschnitt **"Environment variables"** die Werte aus `.env.example` einzeln
+   eintragen (mindestens `MEINIBS_USER`, `MEINIBS_PASSWORD`; alle anderen haben
+   sinnvolle Defaults in `docker-compose.yml`).
+3. Deploy the stack.
+
 ### Ohne Docker (lokale Entwicklung)
 
 ```bash

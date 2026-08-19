@@ -4,8 +4,15 @@ services:
     container_name: essensplan
     ports:
       - "${HOST_PORT:-3000}:${PORT:-3000}"
-    env_file:
-      - .env
+    environment:
+      MEINIBS_BASE_URL: ${MEINIBS_BASE_URL:-https://meinibs.de/skitbs-rest/rest/skitbs_mobile/v1}
+      MEINIBS_USER: ${MEINIBS_USER}
+      MEINIBS_PASSWORD: ${MEINIBS_PASSWORD}
+      SYNC_CRON: ${SYNC_CRON:-0 */4 * * *}
+      SYNC_WEEKS_BACK: ${SYNC_WEEKS_BACK:-8}
+      SYNC_WEEKS_FORWARD: ${SYNC_WEEKS_FORWARD:-2}
+      PORT: ${PORT:-3000}
+      DB_PATH: ${DB_PATH:-./data/meinibis.db}
     volumes:
       - ./data:/app/data
     restart: unless-stopped
