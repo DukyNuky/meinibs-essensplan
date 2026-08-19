@@ -1,0 +1,22 @@
+{
+  "name": "meinibis-essensplan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Holt Essenpläne & Bestellungen von meinibs.de ab, speichert sie und lässt dich sie bewerten.",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "sync": "node -e \"require('./src/sync').runSync().then(r=>{console.log(r);process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})\"",
+    "probe": "node scripts/probe.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

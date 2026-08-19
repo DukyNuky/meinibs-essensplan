@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Essensplan</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><span class="mascot">🦉</span> Essensplan</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="week">🍽️ Wochenplan</button>
+      <button class="tab-btn" data-tab="stats">📊 Für Eltern</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-week" class="tab-panel active">
+      <div class="week-nav">
+        <button id="prevWeek" aria-label="Vorherige Woche">◀</button>
+        <div class="week-label">
+          <div id="weekRange">–</div>
+          <button id="todayBtn" class="today-btn">Diese Woche</button>
+        </div>
+        <button id="nextWeek" aria-label="Nächste Woche">▶</button>
+      </div>
+      <div id="days"></div>
+    </section>
+
+    <section id="tab-stats" class="tab-panel">
+      <div id="budgetCard" class="budget-card">
+        <div class="budget-label">🪙 Aktuelles Guthaben</div>
+        <div id="budgetValue" class="budget-value">–</div>
+        <div id="budgetUpdated" class="muted"></div>
+        <a href="https://meinibs.de/prepaid" target="_blank" rel="noopener" class="topup-link">Guthaben aufladen ↗</a>
+      </div>
+
+      <div class="sync-card">
+        <button id="syncBtn" class="sync-btn-wide">🔄 Jetzt synchronisieren</button>
+
+        <div class="schedule-form">
+          <div class="schedule-title">Automatischer Sync</div>
+          <div class="schedule-row">
+            <select id="scheduleWeekday">
+              <option value="1">Montag</option>
+              <option value="2">Dienstag</option>
+              <option value="3">Mittwoch</option>
+              <option value="4">Donnerstag</option>
+              <option value="5">Freitag</option>
+              <option value="6">Samstag</option>
+              <option value="0">Sonntag</option>
+            </select>
+            <input type="time" id="scheduleTime" value="18:00" />
+            <button id="scheduleSaveBtn">Speichern</button>
+          </div>
+          <div id="scheduleStatus" class="muted"></div>
+        </div>
+      </div>
+
+      <div class="stats-summary" id="statsSummary"></div>
+
+      <div class="stats-block">
+        <h2>🔁 Meistgegessen</h2>
+        <ul id="mostRepeated" class="dish-list"></ul>
+      </div>
+      <div class="stats-block">
+        <h2>💚 Liebstes Essen</h2>
+        <ul id="mostLoved" class="dish-list"></ul>
+      </div>
+      <div class="stats-block">
+        <h2>💔 Unbeliebtestes Essen</h2>
+        <ul id="mostDisliked" class="dish-list"></ul>
+      </div>
+
+      <div id="lastSync" class="muted last-sync"></div>
+    </section>
+  </main>
+
+  <template id="dayCardTemplate">
+    <article class="day-card">
+      <div class="day-header">
+        <div class="weekday-badge"><span class="weekday-emoji"></span><span class="weekday-name"></span></div>
+        <div class="day-date"></div>
+      </div>
+      <div class="repeat-badges"></div>
+      <div class="dish-names"></div>
+      <div class="alt-section">
+        <button class="alt-toggle" type="button">🔀 Alternative anzeigen</button>
+        <ul class="alt-list"></ul>
+      </div>
+      <div class="rating-row">
+        <div class="thumbs">
+          <button class="thumb thumb-good" data-rating="good" title="War gut">👍</button>
+          <button class="thumb thumb-bad" data-rating="bad" title="War nicht so gut">👎</button>
+        </div>
+        <textarea class="comment" placeholder="Kommentar (optional)"></textarea>
+        <button class="save-comment">Speichern</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
