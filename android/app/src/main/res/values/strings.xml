@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Essensplan</string>
+    <string name="setup_title">Server-Adresse</string>
+    <string name="setup_hint">Adresse deines Essensplan-Servers</string>
+    <string name="setup_example">z.B. http://192.168.1.20:3000 oder https://essensplan.example.de</string>
+    <string name="setup_save">Verbinden</string>
+    <string name="setup_empty">Bitte eine Adresse eintragen.</string>
+    <string name="setup_checking">Verbindung wird geprüft…</string>
+    <string name="setup_ok">Server erreichbar.</string>
+    <string name="setup_failed">Server nicht erreichbar: %1$s\nTrotzdem speichern?</string>
+    <string name="setup_save_anyway">Trotzdem speichern</string>
+    <string name="cancel">Abbrechen</string>
+
+    <string name="menu">Menü</string>
+    <string name="menu_reload">Neu laden</string>
+    <string name="menu_update">Nach Update suchen</string>
+    <string name="menu_server">Server-Adresse ändern</string>
+    <string name="menu_about">Über</string>
+
+    <string name="error_title">Kein Kontakt zum Server</string>
+    <string name="error_body">%1$s ist gerade nicht erreichbar. Läuft der Container, und ist das Handy im richtigen Netz?</string>
+    <string name="retry">Erneut versuchen</string>
+
+    <string name="update_checking">Suche nach Updates…</string>
+    <string name="update_none">Du hast bereits die neueste Version (%1$s).</string>
+    <string name="update_failed">Update-Prüfung fehlgeschlagen: %1$s</string>
+    <string name="update_title">Update verfügbar</string>
+    <string name="update_body">Version %1$s ist verfügbar (installiert: %2$s).\n\n%3$s</string>
+    <string name="update_download">Herunterladen</string>
+    <string name="update_later">Später</string>
+    <string name="update_downloading">Update wird geladen…</string>
+    <string name="update_install_permission">Android muss dieser App noch erlauben, Apps zu installieren. Bitte im folgenden Dialog "Aus dieser Quelle zulassen" aktivieren und danach erneut auf Update prüfen.</string>
+    <string name="ok">OK</string>
+    <string name="about_body">Essensplan %1$s\n\nHülle für die selbst gehostete Essensplan-Webapp.\nServer: %2$s</string>
+</resources>

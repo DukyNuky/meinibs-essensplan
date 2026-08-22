@@ -83,3 +83,78 @@ deiner damaligen Bewertung/deinem Kommentar an.
 SQLite-Datei unter `data/meinibis.db` (bzw. `./data` als Docker-Volume). Enthält
 nur, was der Sync von meinibs.de abruft, plus deine eigenen Bewertungen/Kommentare.
 Nichts wird an Dritte gesendet.
+
+## Android-App (APK) für's Handy
+
+Unter `android/` liegt eine schlanke Android-Hülle: ein WebView, der den selbst
+gehosteten Server anzeigt. Die ganze Logik (Sync, Datenbank, Bewertungen) bleibt
+im Docker-Container – Handy und Browser sehen also dieselben Daten, und
+Änderungen an der Weboberfläche landen ohne neues APK auf dem Handy.
+
+Die App bringt mit:
+
+- **Server-Adresse beim ersten Start** einstellbar (wird per `/api/health`
+  gegengeprüft), später über das ⋮-Menü oben rechts änderbar.
+- **Wischen zum Neuladen** und eine verständliche Fehlerseite, wenn der Server
+  mal nicht erreichbar ist.
+- **Selbst-Update**: Die App fragt beim Start (und auf Wunsch über das Menü) das
+  neueste GitHub-Release dieses Repos ab, lädt das APK herunter und startet die
+  Installation.
+- Externe Links (z.B. "Guthaben aufladen") öffnen im richtigen Browser.
+
+Mindestens Android 8.0 (API 26).
+
+### Release bauen (GitHub Actions)
+
+Der Workflow [`.github/workflows/android.yml`](.github/workflows/android.yml)
+baut das APK und hängt es an ein GitHub-Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Ein Lauf über **Actions → Android APK → Run workflow** baut ohne Release ein
+Test-APK als Artifact.
+
+### Signierschlüssel
+
+Damit ein Update sich über die installierte App legen darf, muss jedes APK mit
+**demselben** Schlüssel signiert sein – sonst lehnt Android die Installation ab
+("App nicht installiert"). Der Schlüssel liegt als PKCS12-Datei vor
+(`android/essensplan.p12`, per `.gitignore` ausgeschlossen) und gehört als
+Base64 in die Repository-Secrets:
+
+| Secret | Inhalt |
+| --- | --- |
+| `KEYSTORE_B64` | `base64 -w0 android/essensplan.p12` |
+| `KEYSTORE_PASSWORD` | Passwort des Keystores |
+| `KEY_PASSWORD` | dasselbe Passwort |
+| `KEY_ALIAS` | `essensplan` |
+
+Ohne diese Secrets baut der Workflow trotzdem, signiert dann aber mit dem
+Debug-Schlüssel und warnt – solche APKs taugen nur zum Ausprobieren, nicht für
+die Update-Kette. **Die `.p12`-Datei und das Passwort sichern**: geht der
+Schlüssel verloren, muss die App auf dem Handy einmal deinstalliert und neu
+installiert werden.
+
+### Lokal bauen
+
+Braucht JDK 17 und das Android SDK (Platform 35, Build-Tools 35):
+
+```bash
+cd android
+KEYSTORE_FILE=$PWD/essensplan.p12 \
+KEYSTORE_PASSWORD=$(cat keystore-password.txt) \
+KEY_ALIAS=essensplan \
+./gradlew :app:assembleRelease -PappVersionName=1.0.0 -PappVersionCode=10000
+```
+
+Ergebnis: `android/app/build/outputs/apk/release/app-release.apk`.
+
+### Aufs Handy bringen
+
+APK aus dem Release herunterladen und öffnen; beim ersten Mal fragt Android nach
+der Erlaubnis "Unbekannte Apps installieren". Danach in der App die
+Server-Adresse eintragen (z.B. `http://192.168.1.20:3000` im Heimnetz oder die
+HTTPS-Adresse hinter deinem Reverse Proxy).

@@ -1,0 +1,11 @@
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+# Signierschluessel niemals committen
+*.p12
+*.jks
+*.keystore
+keystore-password.txt
+keystore-base64.txt

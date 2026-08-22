@@ -1,0 +1,92 @@
+name: Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versionsnummer für den Testbau (ohne v), z.B. 0.9.0'
+        required: false
+        default: '0.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Version bestimmen
+        id: ver
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          # 1.2.3 -> 10203, damit Android neuere Builds als neuer erkennt
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          CODE=$(( ${MAJOR:-0} * 10000 + ${MINOR:-0} * 100 + ${PATCH:-0} ))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Baue Version $VERSION (versionCode $CODE)"
+
+      - name: Signierschlüssel bereitlegen
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/essensplan.p12"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/essensplan.p12" >> "$GITHUB_ENV"
+
+      - name: Warnung ohne Signierschlüssel
+        if: env.KEYSTORE_B64 == ''
+        run: |
+          echo "::warning::Kein KEYSTORE_B64-Secret gesetzt - das APK wird mit dem Debug-Schlüssel signiert. Updates über eine so gebaute Version hinweg schlagen fehl."
+
+      - name: APK bauen
+        working-directory: android
+        env:
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease \
+            -PappVersionName=${{ steps.ver.outputs.version }} \
+            -PappVersionCode=${{ steps.ver.outputs.code }}
+
+      - name: APK umbenennen
+        id: apk
+        run: |
+          SRC=android/app/build/outputs/apk/release/app-release.apk
+          DST="essensplan-${{ steps.ver.outputs.version }}.apk"
+          mv "$SRC" "$DST"
+          echo "path=$DST" >> "$GITHUB_OUTPUT"
+          ls -lh "$DST"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: essensplan-apk
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Release veröffentlichen
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}
+          generate_release_notes: true
