@@ -60,6 +60,19 @@ function makeChooseLink(label) {
   return link;
 }
 
+const RATING_ICONS = { good: '👍', neutral: '😐', bad: '👎' };
+
+// Kurzinfo zu früheren Vorkommen eines Gerichts: bevorzugt das letzte bewertete
+// Vorkommen, sonst einfach das letzte.
+function describePrior(priorDates) {
+  if (!priorDates || !priorDates.length) return null;
+  const rated = priorDates.find((p) => p.rating);
+  const dateText = (p) => formatShort(new Date(p.date + 'T00:00:00'));
+  if (!rated) return `🔁 gab's schon am ${dateText(priorDates[0])} (nicht bewertet)`;
+  const commentText = rated.comment ? ` „${rated.comment}"` : '';
+  return `${RATING_ICONS[rated.rating]} am ${dateText(rated)}${commentText}`;
+}
+
 function isoWeekNumber(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -131,7 +144,7 @@ function renderDayCard(weekday, iso, meal, isToday) {
     if (!last) continue;
     const badge = document.createElement('div');
     badge.className = 'repeat-badge';
-    const ratingIcon = { good: '👍', neutral: '😐', bad: '👎' }[last.rating] || '';
+    const ratingIcon = RATING_ICONS[last.rating] || '';
     const commentText = last.comment ? ` „${last.comment}"` : '';
     badge.textContent = `🔁 gab's schon am ${formatShort(new Date(last.date + 'T00:00:00'))} ${ratingIcon}${commentText}`;
     badgeContainer.appendChild(badge);
@@ -144,7 +157,27 @@ function renderDayCard(weekday, iso, meal, isToday) {
   const altToggle = node.querySelector('.alt-toggle');
   const altList = node.querySelector('.alt-list');
   if (alternatives.length || meal.canChangeOrder) {
-    altList.innerHTML = alternatives.map((a) => `<li>${a}</li>`).join('');
+    const altRepeats = new Map((meal.alternativeRepeats || []).map((r) => [r.dish, r.priorDates]));
+    const altRatingIcons = [];
+    for (const alt of alternatives) {
+      const li = document.createElement('li');
+      const nameEl = document.createElement('div');
+      nameEl.textContent = alt;
+      li.appendChild(nameEl);
+      const priorDates = altRepeats.get(alt);
+      const info = describePrior(priorDates);
+      if (info) {
+        const infoEl = document.createElement('div');
+        infoEl.className = 'alt-rating';
+        infoEl.textContent = info;
+        li.appendChild(infoEl);
+        const rated = priorDates.find((p) => p.rating);
+        if (rated) altRatingIcons.push(RATING_ICONS[rated.rating]);
+      }
+      altList.appendChild(li);
+    }
+    // Bewertungen schon am eingeklappten Toggle andeuten, damit man sie nicht übersieht.
+    if (altRatingIcons.length) altToggle.textContent += ` · ${altRatingIcons.join(' ')}`;
     if (meal.canChangeOrder) {
       const linkLi = document.createElement('li');
       linkLi.className = 'alt-link-item';
@@ -186,13 +219,41 @@ function renderDayCard(weekday, iso, meal, isToday) {
   }
   commentInput.value = meal.comment || '';
 
+  const saveStatus = node.querySelector('.save-status');
+  let statusTimer;
+  function showStatus(text, kind) {
+    clearTimeout(statusTimer);
+    saveStatus.textContent = text;
+    saveStatus.className = `save-status ${kind || ''}`;
+    if (kind === 'ok') {
+      statusTimer = setTimeout(() => {
+        saveStatus.textContent = '';
+        saveStatus.className = 'save-status';
+      }, 2500);
+    }
+  }
+
   async function saveRating(rating) {
-    await fetch(`/api/meals/${meal.date}/rating`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rating, comment: commentInput.value }),
-    });
-    thumbBtns.forEach((btn) => btn.classList.toggle('active', btn.dataset.rating === rating));
+    const controls = [...thumbBtns, saveBtn];
+    controls.forEach((el) => (el.disabled = true));
+    showStatus('💾 Speichere…');
+    try {
+      const res = await fetch(`/api/meals/${meal.date}/rating`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment: commentInput.value }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || `HTTP ${res.status}`);
+      }
+      thumbBtns.forEach((btn) => btn.classList.toggle('active', btn.dataset.rating === rating));
+      showStatus(`✅ Gespeichert ${RATING_ICONS[rating]}`, 'ok');
+    } catch (err) {
+      showStatus(`⚠️ Nicht gespeichert: ${err.message}`, 'error');
+    } finally {
+      controls.forEach((el) => (el.disabled = false));
+    }
   }
 
   thumbBtns.forEach((btn) => btn.addEventListener('click', () => saveRating(btn.dataset.rating)));

@@ -270,6 +270,11 @@ main {
   border-radius: 8px;
   padding: 0.4rem 0.6rem;
 }
+.alt-rating {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
 .alt-list li.alt-link-item {
   background: none;
   border: none;
@@ -325,6 +330,18 @@ main {
   font-size: 0.9rem;
   align-self: center;
 }
+
+.save-comment:disabled, .thumb:disabled { cursor: wait; }
+
+.save-status {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 1.1rem;
+  color: var(--muted);
+}
+.save-status.ok { color: var(--good); }
+.save-status.error { color: var(--bad); }
 
 .empty-state {
   text-align: center;

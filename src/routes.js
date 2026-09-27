@@ -13,6 +13,17 @@ const router = express.Router();
 
 router.get('/health', (req, res) => res.json({ ok: true }));
 
+function priorDatesWithRatings(dishName, beforeDate, limit) {
+  const prior = db.getPriorOccurrences(normalizeDishName(dishName), beforeDate, limit);
+  if (!prior.length) return [];
+  const priorRatings = db.getRatingsForDates(prior.map((p) => p.date));
+  return prior.map((p) => ({
+    date: p.date,
+    rating: priorRatings.get(p.date)?.rating || null,
+    comment: priorRatings.get(p.date)?.comment || null,
+  }));
+}
+
 router.get('/meals', (req, res) => {
   const to = req.query.to || todayInSchoolTimezone();
   const from = req.query.from || '0000-01-01';
@@ -25,19 +36,15 @@ router.get('/meals', (req, res) => {
     const alternatives = JSON.parse(day.alternatives_json || '[]');
     const repeats = [];
     for (const name of names) {
-      const normalized = normalizeDishName(name);
-      const prior = db.getPriorOccurrences(normalized, day.date, 3);
-      if (prior.length) {
-        const priorRatings = db.getRatingsForDates(prior.map((p) => p.date));
-        repeats.push({
-          dish: name,
-          priorDates: prior.map((p) => ({
-            date: p.date,
-            rating: priorRatings.get(p.date)?.rating || null,
-            comment: priorRatings.get(p.date)?.comment || null,
-          })),
-        });
-      }
+      const priorDates = priorDatesWithRatings(name, day.date, 3);
+      if (priorDates.length) repeats.push({ dish: name, priorDates });
+    }
+    // Auch für die (noch) nicht gewählten Alternativen frühere Vorkommen samt
+    // Bewertung mitliefern - hilft bei der Auswahl, welches Menü man bucht.
+    const alternativeRepeats = [];
+    for (const name of alternatives) {
+      const priorDates = priorDatesWithRatings(name, day.date, 5);
+      if (priorDates.length) alternativeRepeats.push({ dish: name, priorDates });
     }
     const rating = ratings.get(day.date);
     return {
@@ -49,6 +56,7 @@ router.get('/meals', (req, res) => {
       rating: rating?.rating || null,
       comment: rating?.comment || null,
       repeats,
+      alternativeRepeats,
     };
   });
 
